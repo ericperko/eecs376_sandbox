@@ -1,0 +1,9 @@
+<stack>
+  <description brief="eecs376_sandbox">eecs376_sandbox</description>
+  <author>Maintained by Eric Perko</author>
+  <license></license>  
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/eecs376_sandbox</url>
+  <depend stack="ros" />
+
+</stack>
