@@ -44,7 +44,7 @@ void normalizeColors(const cv::Mat& src, cv::Mat& out) {
   mats[1] = mats[1] / total; // normalize G channel
   mats[2] = mats[2] / total; // normalize R channel
   merge(mats, temp); // merge the individual channels back into a BGR image
-  temp.convertTo(out, CV_8U);
+  temp.convertTo(out, CV_8U, 255);
 }
 
 void blobfind(const cv::Mat& src, cv::Mat& out, cv::Point2i& vec)
