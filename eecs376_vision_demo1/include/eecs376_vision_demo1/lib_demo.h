@@ -3,8 +3,10 @@
 
 #include <opencv/cv.h>
 
-void blobfind(const cv::Mat& src, cv::Mat& out, cv::Point2i& vec);
+void blobfind(const cv::Mat& src, cv::Mat& out);
 
 void normalizeColors(const cv::Mat& src, cv::Mat& out);
+
+void findLines(const cv::Mat& src, cv::Mat& out);
 
 #endif

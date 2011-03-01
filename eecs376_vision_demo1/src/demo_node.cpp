@@ -41,7 +41,9 @@ void DemoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg)
     ROS_ERROR("Could not convert from '%s' to 'bgr8'. E was %s", msg->encoding.c_str(), e.what());
   }
   try {
-    normalizeColors(image, output);
+    //normalizeColors(image, output);
+    //blobfind(image, output);
+    findLines(image, output);
     cv::imshow("view", output);
     IplImage temp = output;
     image_pub_.publish(bridge.cvToImgMsg(&temp, "bgr8"));

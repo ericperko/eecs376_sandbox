@@ -9,27 +9,12 @@
 
 #include <time.h>
 
-int rlow = 60;
-int rhigh = 80;
-int glow = 85;
-int ghigh = 120;
-int blow = 70;
-int bhigh = 100;
-
-int hlow = 45;
-int hhigh = 70;
-
-int xSize = 640;
-int ySize = 480;
-
-bool initial = true;
-
-double last_timestamp = 0.0, last_timestamp2 = 0.0;
-
-const int diff_threshold = 30;
-const double max_time_diff = 0.5;
-const double min_time_diff = 0.05;
-const double max_time_to_track = 1.0;
+int rlow = 0;
+int rhigh = 255;
+int glow = 0;
+int ghigh = 255;
+int blow = 0;
+int bhigh = 255;
 
 using namespace cv;
 using namespace cvb;
@@ -40,6 +25,8 @@ void normalizeColors(const cv::Mat& src, cv::Mat& out) {
   vector<Mat> mats; //make a vector of Mats to hold each channel
   split(temp, mats); //split the src image into B, G and R channels
   Mat total = mats[0] + mats[1] + mats[2]; //sum of B+G+R
+  //Mat total = mats[0].mul(mats[0]) + mats[1].mul(mats[1]) + mats[2].mul(mats[2]); //sum of B+G+R
+  //sqrt(total, total);
   mats[0] = mats[0] / total; // normalize B channel
   mats[1] = mats[1] / total; // normalize G channel
   mats[2] = mats[2] / total; // normalize R channel
@@ -47,70 +34,68 @@ void normalizeColors(const cv::Mat& src, cv::Mat& out) {
   temp.convertTo(out, CV_8U, 255);
 }
 
-void blobfind(const cv::Mat& src, cv::Mat& out, cv::Point2i& vec)
+void findLines(const cv::Mat& src, cv::Mat& out) {
+  Mat temp, color_temp;
+  cvtColor(src, temp, CV_BGR2GRAY);
+  Canny( temp, temp, 50, 200, 3 );
+  cvtColor( temp, color_temp, CV_GRAY2BGR );
+
+  vector<Vec4i> lines;
+  HoughLinesP( temp, lines, 1, CV_PI/180, 80, 30, 10 );
+  for( size_t i = 0; i < lines.size(); i++ )
+  {
+    line( color_temp, Point(lines[i][0], lines[i][1]),
+        Point(lines[i][2], lines[i][3]), Scalar(0,0,255), 3, 8 );
+  }
+  out = color_temp;
+}
+
+void blobfind(const cv::Mat& src, cv::Mat& out)
 {
-	Mat temp;
+  Mat temp;
 
-	//cvtColor(src, temp, CV_BGR2HSV);
-	temp = src;
+  //cvtColor(src, temp, CV_BGR2HSV);
+  temp = src;
 
-	vector<Mat> mats;
+  vector<Mat> mats;
 
-	split(temp, mats);
+  split(temp, mats);
 
-	// Set all values below value to zero, leave rest the same
-	// Then inverse binary threshold the remaining pixels
-	
-	// Threshold blue channel
-	threshold(mats[0], mats[0], bhigh, 255, THRESH_TOZERO_INV);
-	threshold(mats[0], mats[0], blow, 255, THRESH_BINARY);
-	// Threshold green channel
-	threshold(mats[1], mats[1], ghigh, 255, THRESH_TOZERO_INV);
-	threshold(mats[1], mats[1], glow, 255, THRESH_BINARY);
-	// Threshold red channel
-	threshold(mats[2], mats[2], rhigh, 255, THRESH_TOZERO_INV);
-	threshold(mats[2], mats[2], rlow, 255, THRESH_BINARY);
+  // Set all values below value to zero, leave rest the same
+  // Then inverse binary threshold the remaining pixels
 
-	multiply(mats[0], mats[1], out);
-	multiply(out, mats[2], out);
+  // Threshold blue channel
+  threshold(mats[0], mats[0], bhigh, 255, THRESH_TOZERO_INV);
+  threshold(mats[0], mats[0], blow, 255, THRESH_BINARY);
+  // Threshold green channel
+  threshold(mats[1], mats[1], ghigh, 255, THRESH_TOZERO_INV);
+  threshold(mats[1], mats[1], glow, 255, THRESH_BINARY);
+  // Threshold red channel
+  threshold(mats[2], mats[2], rhigh, 255, THRESH_TOZERO_INV);
+  threshold(mats[2], mats[2], rlow, 255, THRESH_BINARY);
 
-	erode(out, out, Mat());	
+  multiply(mats[0], mats[1], out);
+  multiply(out, mats[2], out);
 
-	dilate(out, out, Mat(), Point(-1,-1), 30);
+  erode(out, out, Mat());	
 
-	IplImage temp1 = out;
-	IplImage temp2 = temp;
-	IplImage *labelImg=cvCreateImage(cvGetSize(&temp1), IPL_DEPTH_LABEL, 1);
-	CvBlobs blobs;
-	unsigned int result=cvLabel(&temp1, labelImg, blobs);
-	cvRenderBlobs(labelImg, blobs, &temp2, &temp2);
+  dilate(out, out, Mat(), Point(-1,-1), 30);
 
-	CvLabel greatestBlob = cvGreaterBlob(blobs); 
-	CvPoint2D64f center;
-	center.x = xSize/2;
-	center.y = ySize/2;
-	if (greatestBlob > 0) {
-	    center = cvCentroid(blobs[greatestBlob]);
-	}
+  IplImage temp1 = out;
+  IplImage temp2 = temp;
+  IplImage *labelImg=cvCreateImage(cvGetSize(&temp1), IPL_DEPTH_LABEL, 1);
+  CvBlobs blobs;
+  unsigned int result=cvLabel(&temp1, labelImg, blobs);
+  cvRenderBlobs(labelImg, blobs, &temp2, &temp2);
 
-	vector<Point2f> corners;
+  CvLabel greatestBlob = cvGreaterBlob(blobs); 
+  CvPoint2D64f center;
+  center.x = src.size().width/2;
+  center.y = src.size().height/2;
+  if (greatestBlob > 0) {
+    center = cvCentroid(blobs[greatestBlob]);
+  }
 
-	goodFeaturesToTrack(out, corners, 4,.01, 1,Mat(),3);
-
-	//int xCenter = (corners[0].x+corners[2].x)/2;
-	//int yCenter = (corners[0].y+corners[2].y)/2;
-
-	int xOffset = xSize/2 - (int) center.x;
-	int yOffset = -ySize/2 + (int) center.y;
-
-	//std::cout << xOffset << " " << yOffset << std::endl;
-
-	vec = Point2i(xOffset, yOffset);
-
-	//circle(out, corners[0], 10, Scalar(255,0,0));
-	//circle(out, corners[2], 10, Scalar(255,0,0));
-	//merge(mats, out);
-	//out = mats[0];
-	out = temp;
-	cvReleaseImage(&labelImg);
+  out = temp;
+  cvReleaseImage(&labelImg);
 }
