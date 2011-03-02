@@ -1,5 +1,5 @@
 <launch>
-<node launch-prefix="xterm -e gdb --args" pkg="eecs376_vision_demo1" type="vision_demo" name="demo_node" output="screen">
+<node pkg="eecs376_vision_demo1" type="vision_demo" name="demo_node" output="screen">
     <!-- remap from="image" to="camera/image_raw" /-->
     <remap from="image" to="/front_camera/image_rect_color"/>
 </node>

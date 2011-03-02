@@ -9,12 +9,12 @@
 
 #include <time.h>
 
-int rlow = 0;
+int rlow = 220;
 int rhigh = 255;
-int glow = 0;
-int ghigh = 255;
-int blow = 0;
-int bhigh = 255;
+int glow = 80;
+int ghigh = 120;
+int blow = 45;
+int bhigh = 60;
 
 using namespace cv;
 using namespace cvb;
@@ -35,17 +35,18 @@ void normalizeColors(const cv::Mat& src, cv::Mat& out) {
 }
 
 void findLines(const cv::Mat& src, cv::Mat& out) {
-  Mat temp, color_temp;
-  cvtColor(src, temp, CV_BGR2GRAY);
-  Canny( temp, temp, 50, 200, 3 );
-  cvtColor( temp, color_temp, CV_GRAY2BGR );
+  Mat temp, color_temp; //setup some temps
+  cvtColor(src, temp, CV_BGR2GRAY); //convert to grayscale for the edge detector
+  //Sobel(temp, temp, CV_8U, 1, 1);
+  Canny( temp, temp, 50, 200, 3 ); //run Canny edge detector with some default values
+  cvtColor( temp, color_temp, CV_GRAY2BGR ); //Convert Canny edges back to 3-channel
 
   vector<Vec4i> lines;
-  HoughLinesP( temp, lines, 1, CV_PI/180, 80, 30, 10 );
+  HoughLinesP( temp, lines, 1, CV_PI/180, 80, 30, 10 ); //Find lines in the Canny image
   for( size_t i = 0; i < lines.size(); i++ )
   {
     line( color_temp, Point(lines[i][0], lines[i][1]),
-        Point(lines[i][2], lines[i][3]), Scalar(0,0,255), 3, 8 );
+        Point(lines[i][2], lines[i][3]), Scalar(0,0,255), 3, 8 ); //Draw
   }
   out = color_temp;
 }
@@ -57,13 +58,14 @@ void blobfind(const cv::Mat& src, cv::Mat& out)
   //cvtColor(src, temp, CV_BGR2HSV);
   temp = src;
 
+  //Make a vector of Mats to hold the invidiual B,G,R channels
   vector<Mat> mats;
 
+  //Split the input into 3 separate channels
   split(temp, mats);
 
   // Set all values below value to zero, leave rest the same
   // Then inverse binary threshold the remaining pixels
-
   // Threshold blue channel
   threshold(mats[0], mats[0], bhigh, 255, THRESH_TOZERO_INV);
   threshold(mats[0], mats[0], blow, 255, THRESH_BINARY);
@@ -77,7 +79,7 @@ void blobfind(const cv::Mat& src, cv::Mat& out)
   multiply(mats[0], mats[1], out);
   multiply(out, mats[2], out);
 
-  erode(out, out, Mat());	
+  erode(out, out, Mat());
 
   dilate(out, out, Mat(), Point(-1,-1), 30);
 
@@ -88,7 +90,7 @@ void blobfind(const cv::Mat& src, cv::Mat& out)
   unsigned int result=cvLabel(&temp1, labelImg, blobs);
   cvRenderBlobs(labelImg, blobs, &temp2, &temp2);
 
-  CvLabel greatestBlob = cvGreaterBlob(blobs); 
+  CvLabel greatestBlob = cvGreaterBlob(blobs);
   CvPoint2D64f center;
   center.x = src.size().width/2;
   center.y = src.size().height/2;

@@ -18,7 +18,7 @@ class DemoNode {
     image_transport::Publisher image_pub_;
 };
 
-DemoNode::DemoNode() : 
+DemoNode::DemoNode():
   it_(nh_)
 {
   sub_ = it_.subscribe("image", 1, &DemoNode::imageCallback, this);
@@ -30,7 +30,6 @@ void DemoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg)
   sensor_msgs::CvBridge bridge;
   cv::Mat image;
   cv::Mat output;
-  cv::Point2i vec;
   try
   {
     image = cv::Mat(bridge.imgMsgToCv(msg, "bgr8"));
@@ -44,7 +43,7 @@ void DemoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg)
     //normalizeColors(image, output);
     //blobfind(image, output);
     findLines(image, output);
-    cv::imshow("view", output);
+    //cv::imshow("view", output);
     IplImage temp = output;
     image_pub_.publish(bridge.cvToImgMsg(&temp, "bgr8"));
   }
@@ -58,8 +57,8 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "eecs376_vision_demo1");
   DemoNode motion_tracker;
-  cvNamedWindow("view"); //these cv* calls are need if you want to use cv::imshow anywhere in your program
-  cvStartWindowThread();
+  //cvNamedWindow("view"); //these cv* calls are need if you want to use cv::imshow anywhere in your program
+  //cvStartWindowThread();
   ros::spin();
-  cvDestroyWindow("view");
+  //cvDestroyWindow("view");
 }
